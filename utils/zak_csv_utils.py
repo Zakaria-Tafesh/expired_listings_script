@@ -1,4 +1,6 @@
+import copy
 import csv
+import datetime
 import os
 import time
 from zak_api_utils import *
@@ -15,6 +17,7 @@ print(PATH_PARENT)
 print(PATH_PARENT_PARENT)
 
 PATH_INPUT = os.path.join(PATH_PARENT_PARENT, 'input')
+PATH_OUTPUT = os.path.join(PATH_PARENT_PARENT, 'output')
 print(PATH_INPUT)
 
 
@@ -64,20 +67,81 @@ class CSVReader:
 
 class UpdateCSV(CSVReader):
 
-    def __init__(self, csv_file):
+    def __init__(self, csv_file, add_to_output, add_datetime_to_output):
         super().__init__(csv_file)
+        self.new_objects = []
+        self.input_name = csv_file
+        self.add_to_output = add_to_output
+        self.add_datetime_to_output = add_datetime_to_output
+        self.output_header = []
 
     def update_objects(self):
         for obj in self.all_objects:
-            print('#'*30)
+            time.sleep(2)
+            print('#'*50)
             address = obj.get('Address')
             if not address:
                 continue
             addresses_dict = AddressesDetails.get_3_addresses_with_prices(address)
+            print(f'addresses_dict : {addresses_dict}')
 
-            print(f'addresses_dict: {addresses_dict}')
-            print('#'*30)
-            break
+            new_3_objs = self.get_3_objects(obj, addresses_dict)
+            print(f'addresses_dict :: {addresses_dict}')
+
+            self.new_objects.extend(new_3_objs)
+
+            print('#'*50)
+
+        print(self.new_objects)
+        self.get_output_header()
+
+    def write_objects(self):
+        output_name = self.prepare_output_name()
+        print('Writing to CSV... :', output_name)
+        with open(output_name, 'w', encoding='UTF8', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=self.output_header)
+            writer.writeheader()
+            writer.writerows(self.new_objects)
+        print('CSV Wrote Successfully.')
+
+    def get_output_header(self):
+        self.output_header = max(list(map(lambda x: (len(x), x), self.new_objects)), key=lambda i: i[0])[1].keys()
+        return self.output_header
+
+    def prepare_output_name(self):
+        def get_datetime_now():
+            dt_now = datetime.datetime.now().strftime('%d_%m_%Y_%H_%M_%S')
+            return dt_now
+
+        input_name = self.input_name
+        first_part = input_name.split('.')[0]  # remove .csv
+        second_part = self.add_to_output if self.add_to_output else ''
+        third_part = get_datetime_now() if self.add_datetime_to_output else ''
+        last_part = '.csv'
+        output_name = f'{first_part}_{second_part}_{third_part}{last_part}'
+        output_path = os.path.join(PATH_OUTPUT, output_name)
+
+        return output_path
+
+    @staticmethod
+    def get_3_objects(obj: dict, addresses_dict: dict) -> list:
+        old_keys = obj.keys()
+        the_3_objs = []
+        addresses_dict = copy.deepcopy(addresses_dict)
+
+        first_obj = copy.deepcopy(obj)
+        first_obj['offer_price'] = addresses_dict['address1']['offer_price']
+        first_obj['offer_price_90'] = addresses_dict['address1']['offer_price_90']
+        the_3_objs.append(first_obj)
+        del addresses_dict['address1']
+        for key, val in addresses_dict.items():
+            new_obj = dict.fromkeys(old_keys, '')
+            new_obj['Address'] = val['address']
+            new_obj['offer_price'] = val['offer_price']
+            new_obj['offer_price_90'] = val['offer_price_90']
+            the_3_objs.append(new_obj)
+
+        return the_3_objs
 
     @staticmethod
     def format_as_dollar(value):
@@ -106,12 +170,15 @@ class AddressesDetails:
     def get_3_addresses_with_prices(cls, address):
         print(f'Start working on Addresses: {address}')
         cls.address1 = address + f', {City}, {Area}'
+        print(f'address1: {cls.address1}')
         cls.get_nearest_2_addresses()
         cls.get_estimates()
         return cls.addresses_prices
 
     @classmethod
     def get_nearest_2_addresses(cls):
+        print(f'address1: {cls.address1}')
+
         first_part = int(cls.address1.split()[0])
         other_parts = ' '.join(cls.address1.split()[1:])
         if first_part == 1:
@@ -122,6 +189,7 @@ class AddressesDetails:
             third = first_part - 1
         cls.address2 = f'{second} {other_parts}'
         cls.address3 = f'{third} {other_parts}'
+        print(f'address1: {cls.address1}')
 
         cls.addresses_prices['address1']['address'] = cls.address1
         cls.addresses_prices['address2']['address'] = cls.address2
@@ -143,13 +211,14 @@ class AddressesDetails:
         return cls.addresses_prices
 
 
-if __name__ == '__main__':
-
-    Target_CSV = """Adam's_Custom_Spreadsheet.csv"""
-    csv_obj = UpdateCSV(Target_CSV)
-    csv_obj.read_and_convert()
-    csv_obj.update_objects()
-
-    # for obj in objs:
-    #     print(obj)
+# if __name__ == '__main__':
+#     Target_CSV = """Adam's_Custom_Spreadsheet.csv"""
+#     ADD_TO_OUTPUT = """_Complete"""
+#     ADD_DATETIME_TO_OUTPUT = True
+#     csv_obj = UpdateCSV(Target_CSV, ADD_TO_OUTPUT, ADD_DATETIME_TO_OUTPUT)
+#
+#     csv_obj.read_and_convert()
+#     csv_obj.update_objects()
+#     csv_obj.write_objects()
+#
 
