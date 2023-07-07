@@ -1,9 +1,9 @@
 import copy
 import csv
-import datetime
 import os
 import time
-from zak_api_utils import *
+from .zak_api_utils import *
+from .logger import logger, get_datetime_now
 
 City = 'Edmonton'
 Area = 'AB'
@@ -12,13 +12,14 @@ PATH_THIS_FILE = os.path.realpath(__file__)
 PATH_PARENT = os.path.abspath(os.path.dirname(__file__))
 PATH_PARENT_PARENT = os.path.abspath(os.path.join(PATH_PARENT, os.pardir))
 
-print(PATH_THIS_FILE)
-print(PATH_PARENT)
-print(PATH_PARENT_PARENT)
+logger.info(PATH_THIS_FILE)
+logger.info(PATH_PARENT)
+logger.info(PATH_PARENT_PARENT)
 
 PATH_INPUT = os.path.join(PATH_PARENT_PARENT, 'input')
 PATH_OUTPUT = os.path.join(PATH_PARENT_PARENT, 'output')
-print(PATH_INPUT)
+
+logger.info(PATH_INPUT)
 
 
 class CSVReader:
@@ -36,16 +37,16 @@ class CSVReader:
 
     def read_csv(self):
         start = time.time()
-        print('Reading CSV', self.csv_path)
+        logger.info(f'Reading CSV: {self.csv_path}')
         self.dataReader = csv.reader(open(self.csv_path), delimiter=',', quotechar='"')
         self.header = next(self.dataReader, None)
         self.header = list(map(lambda item: str(item).replace(' ', '').replace('__', ''), self.header))
-        print(f'Header : {self.header}')
-        print(f'Done Reading CSV in {round((time.time() - start), 2)}')
+        logger.info(f'Header : {self.header}')
+        logger.info(f'Done Reading CSV in {round((time.time() - start), 2)}')
 
     def csv_to_objects(self):
         start = time.time()
-        print('Preparing Data (csv_to_objects)...')
+        logger.info('Preparing Data (csv_to_objects)...')
 
         for row in self.dataReader:
             if not row:
@@ -62,7 +63,7 @@ class CSVReader:
 
             self.all_objects.append(home_object)
 
-        print(f'Time : {round((time.time() - start), 2)} Seconds')
+        logger.info(f'Time : {round((time.time() - start), 2)} Seconds')
 
 
 class UpdateCSV(CSVReader):
@@ -78,40 +79,37 @@ class UpdateCSV(CSVReader):
     def update_objects(self):
         for obj in self.all_objects:
             time.sleep(2)
-            print('#'*50)
+            logger.info('#'*50)
             address = obj.get('Address')
             if not address:
                 continue
             addresses_dict = AddressesDetails.get_3_addresses_with_prices(address)
-            print(f'addresses_dict : {addresses_dict}')
+            logger.info(f'addresses_dict : {addresses_dict}')
 
             new_3_objs = self.get_3_objects(obj, addresses_dict)
-            print(f'addresses_dict :: {addresses_dict}')
+            logger.info(f'addresses_dict :: {addresses_dict}')
 
             self.new_objects.extend(new_3_objs)
 
-            print('#'*50)
+            logger.info('#'*50)
 
-        print(self.new_objects)
+        logger.info(self.new_objects)
         self.get_output_header()
 
     def write_objects(self):
         output_name = self.prepare_output_name()
-        print('Writing to CSV... :', output_name)
+        logger.info(f'Writing to CSV... : {output_name}')
         with open(output_name, 'w', encoding='UTF8', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=self.output_header)
             writer.writeheader()
             writer.writerows(self.new_objects)
-        print('CSV Wrote Successfully.')
+        logger.info('CSV Wrote Successfully.')
 
     def get_output_header(self):
         self.output_header = max(list(map(lambda x: (len(x), x), self.new_objects)), key=lambda i: i[0])[1].keys()
         return self.output_header
 
     def prepare_output_name(self):
-        def get_datetime_now():
-            dt_now = datetime.datetime.now().strftime('%d_%m_%Y_%H_%M_%S')
-            return dt_now
 
         input_name = self.input_name
         first_part = input_name.split('.')[0]  # remove .csv
@@ -168,16 +166,16 @@ class AddressesDetails:
 
     @classmethod
     def get_3_addresses_with_prices(cls, address):
-        print(f'Start working on Addresses: {address}')
+        logger.info(f'Start working on Addresses: {address}')
         cls.address1 = address + f', {City}, {Area}'
-        print(f'address1: {cls.address1}')
+        logger.info(f'address1: {cls.address1}')
         cls.get_nearest_2_addresses()
         cls.get_estimates()
         return cls.addresses_prices
 
     @classmethod
     def get_nearest_2_addresses(cls):
-        print(f'address1: {cls.address1}')
+        logger.info(f'address1: {cls.address1}')
 
         first_part = int(cls.address1.split()[0])
         other_parts = ' '.join(cls.address1.split()[1:])
@@ -189,7 +187,7 @@ class AddressesDetails:
             third = first_part - 1
         cls.address2 = f'{second} {other_parts}'
         cls.address3 = f'{third} {other_parts}'
-        print(f'address1: {cls.address1}')
+        logger.info(f'address1: {cls.address1}')
 
         cls.addresses_prices['address1']['address'] = cls.address1
         cls.addresses_prices['address2']['address'] = cls.address2
@@ -199,15 +197,15 @@ class AddressesDetails:
     def get_estimates(cls):
         for address_num, address_dict in cls.addresses_prices.items():
             address = address_dict['address']
-            print('#'*20)
-            print(f'Getting estimate for {address}')
+            logger.info('#'*20)
+            logger.info(f'Getting estimate for {address}')
             resp = GetEstimateAPI.get_estimate(address)
             if resp.get('offer_price'):
                 address_dict['offer_price'] = UpdateCSV.format_as_dollar(resp.get('offer_price'))
                 address_dict['offer_price_90'] = UpdateCSV.format_as_dollar(resp.get('offer_price_90'))
-            print('#'*20)
+            logger.info('#'*20)
 
-        print(cls.addresses_prices)
+        logger.info(cls.addresses_prices)
         return cls.addresses_prices
 
 

@@ -1,6 +1,7 @@
 import traceback
-
 import requests
+from .logger import logger
+
 
 base_url = 'https://api.dev.sweetly.ca/api/estimate/get/'
 
@@ -27,8 +28,8 @@ class GetEstimateAPI:
         try:
             cls.payload = {'address': address}
             response = requests.request("GET", cls.url, data=cls.payload)
-            print(response)
-            print(response.text)
+            logger.info(response)
+            logger.info(response.text)
 
             if response.status_code < 300:
                 resp_json = response.json()
@@ -36,7 +37,7 @@ class GetEstimateAPI:
                 cls.offer_price = prices.get('offer_price')
                 cls.offer_price_90 = prices.get('offer_price_90')
                 cls.update_offers_dict()
-                print(cls.offers_dict)
+                logger.info(cls.offers_dict)
 
         except:
             traceback.print_exc()
@@ -48,4 +49,4 @@ class GetEstimateAPI:
 #     adrs = '12223 103 Street, Edmonton, AB'
 #     estimate = GetEstimateAPI(adrs)
 #     resp = estimate.get_estimate()
-#     print(resp)
+#     logger.info(resp)
