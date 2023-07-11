@@ -53,3 +53,16 @@ rfh.setLevel(logging.DEBUG)
 rfh.setFormatter(formatter)
 logger.addHandler(rfh)
 
+
+# if __name__ == '__main__':
+#     import pandas as pd
+#
+#     new_my_dict = [
+#         {'a': 15, 'n': 81, 'p': 177},
+#         {'a': 18, 'n': 24, 'c':22, 'p': 190},
+#         {'a': 19, 'n': 20, 'p': 156},
+#     ]
+#
+#     df = pd.DataFrame.from_dict(new_my_dict)
+#     print(df)
+#     # df.to_csv(r'test8.csv', index=False, header=True)

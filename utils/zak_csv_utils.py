@@ -92,6 +92,7 @@ class UpdateCSV(CSVReader):
             self.new_objects.extend(new_3_objs)
 
             logger.info('#'*50)
+            break
 
         logger.info(self.new_objects)
         self.get_output_header()
@@ -155,27 +156,36 @@ class AddressesDetails:
     address1 = ''
     address2 = ''
     address3 = ''
+    address1_for_search = ''
+    address2_for_search = ''
+    address3_for_search = ''
+
     addresses_prices = {
-        'address1': {'address': ''
+        'address1': {'address': '',
+                     'address_for_search': ''
                      },
-        'address2': {'address': ''
+        'address2': {'address': '',
+                     'address_for_search': ''
                      },
-        'address3': {'address': ''
+        'address3': {'address': '',
+                     'address_for_search': ''
                      }
     }
 
     @classmethod
     def get_3_addresses_with_prices(cls, address):
         logger.info(f'Start working on Addresses: {address}')
-        cls.address1 = address + f', {City}, {Area}'
+        cls.address1 = address
+        cls.address1_for_search = address + f', {City}, {Area}'
         logger.info(f'address1: {cls.address1}')
+        logger.info(f'address1_for_search: {cls.address1_for_search}')
         cls.get_nearest_2_addresses()
         cls.get_estimates()
         return cls.addresses_prices
 
     @classmethod
     def get_nearest_2_addresses(cls):
-        logger.info(f'address1: {cls.address1}')
+        logger.info(f'address1_for_search: {cls.address1_for_search}')
 
         first_part = int(cls.address1.split()[0])
         other_parts = ' '.join(cls.address1.split()[1:])
@@ -187,22 +197,32 @@ class AddressesDetails:
             third = first_part - 1
         cls.address2 = f'{second} {other_parts}'
         cls.address3 = f'{third} {other_parts}'
-        logger.info(f'address1: {cls.address1}')
+        cls.address2_for_search = cls.address2 + f', {City}, {Area}'
+        cls.address3_for_search = cls.address3 + f', {City}, {Area}'
 
         cls.addresses_prices['address1']['address'] = cls.address1
+        cls.addresses_prices['address1']['address_for_search'] = cls.address1_for_search
         cls.addresses_prices['address2']['address'] = cls.address2
+        cls.addresses_prices['address2']['address_for_search'] = cls.address2_for_search
         cls.addresses_prices['address3']['address'] = cls.address3
+        cls.addresses_prices['address3']['address_for_search'] = cls.address3_for_search
+
 
     @classmethod
     def get_estimates(cls):
         for address_num, address_dict in cls.addresses_prices.items():
-            address = address_dict['address']
+            address = address_dict['address_for_search']
             logger.info('#'*20)
             logger.info(f'Getting estimate for {address}')
             resp = GetEstimateAPI.get_estimate(address)
+            logger.info(f'resp:: {resp}')
             if resp.get('offer_price'):
+                logger.info(resp.get('offer_price'))
                 address_dict['offer_price'] = UpdateCSV.format_as_dollar(resp.get('offer_price'))
                 address_dict['offer_price_90'] = UpdateCSV.format_as_dollar(resp.get('offer_price_90'))
+            else:
+                address_dict['offer_price'] = ''
+                address_dict['offer_price_90'] = ''
             logger.info('#'*20)
 
         logger.info(cls.addresses_prices)

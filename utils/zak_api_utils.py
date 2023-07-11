@@ -24,8 +24,20 @@ class GetEstimateAPI:
         }
 
     @classmethod
+    def init_variables(cls):
+        cls.url = base_url
+        cls.payload = {'address': ''}
+        cls.offer_price = ''
+        cls.offer_price_90 = ''
+        cls.offers_dict = {
+            'offer_price': '',
+            'offer_price_90': ''
+        }
+
+    @classmethod
     def get_estimate(cls, address):
         try:
+            cls.init_variables()
             cls.payload = {'address': address}
             response = requests.request("GET", cls.url, data=cls.payload)
             logger.info(response)
