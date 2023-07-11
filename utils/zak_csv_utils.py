@@ -92,7 +92,7 @@ class UpdateCSV(CSVReader):
             self.new_objects.extend(new_3_objs)
 
             logger.info('#'*50)
-            break
+
 
         logger.info(self.new_objects)
         self.get_output_header()
@@ -138,6 +138,8 @@ class UpdateCSV(CSVReader):
             new_obj['Address'] = val['address']
             new_obj['offer_price'] = val['offer_price']
             new_obj['offer_price_90'] = val['offer_price_90']
+            new_obj['PostalCode'] = first_obj['PostalCode']
+
             the_3_objs.append(new_obj)
 
         return the_3_objs
@@ -206,7 +208,6 @@ class AddressesDetails:
         cls.addresses_prices['address2']['address_for_search'] = cls.address2_for_search
         cls.addresses_prices['address3']['address'] = cls.address3
         cls.addresses_prices['address3']['address_for_search'] = cls.address3_for_search
-
 
     @classmethod
     def get_estimates(cls):
