@@ -17,6 +17,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\input\Adam's_Expired_Listing_Report (3).csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\output\Adam's_Custom_Spreadsheet_Complete_12_07_2023_01_34_49.csv">
           <value>
             <Attribute>

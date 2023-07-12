@@ -7,6 +7,8 @@ from .logger import logger, get_datetime_now
 
 City = 'Edmonton'
 Area = 'AB'
+CSV_COLUMN_ADDRESS = 'Add'
+CSV_COLUMN_POSTALCODE = 'PC'
 
 PATH_THIS_FILE = os.path.realpath(__file__)
 PATH_PARENT = os.path.abspath(os.path.dirname(__file__))
@@ -77,10 +79,10 @@ class UpdateCSV(CSVReader):
         self.output_header = []
 
     def update_objects(self):
-        for obj in self.all_objects:
+        for i, obj in enumerate(self.all_objects):
             time.sleep(2)
-            logger.info('#'*50)
-            address = obj.get('Address')
+            logger.info('#'*50 + f'{i + 1}/{len(self.all_objects)}')
+            address = obj.get(CSV_COLUMN_ADDRESS)
             if not address:
                 continue
             addresses_dict = AddressesDetails.get_3_addresses_with_prices(address)
@@ -92,7 +94,6 @@ class UpdateCSV(CSVReader):
             self.new_objects.extend(new_3_objs)
 
             logger.info('#'*50)
-
 
         logger.info(self.new_objects)
         self.get_output_header()
@@ -135,10 +136,10 @@ class UpdateCSV(CSVReader):
         del addresses_dict['address1']
         for key, val in addresses_dict.items():
             new_obj = dict.fromkeys(old_keys, '')
-            new_obj['Address'] = val['address']
+            new_obj[CSV_COLUMN_ADDRESS] = val['address']
             new_obj['offer_price'] = val['offer_price']
             new_obj['offer_price_90'] = val['offer_price_90']
-            new_obj['PostalCode'] = first_obj['PostalCode']
+            new_obj[CSV_COLUMN_POSTALCODE] = first_obj[CSV_COLUMN_POSTALCODE]
 
             the_3_objs.append(new_obj)
 
