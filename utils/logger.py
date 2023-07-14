@@ -5,6 +5,11 @@ import os
 import time
 
 
+def create_log_dir(log_dir):
+    print('Creating log directory: %s' % log_dir)
+    os.makedirs(log_dir)
+
+
 def get_datetime_now():
     dt_now = datetime.datetime.now().strftime('%d_%m_%Y_%H_%M_%S')
     return dt_now
@@ -13,8 +18,11 @@ def get_datetime_now():
 PATH_THIS_FILE = os.path.realpath(__file__)
 PATH_PARENT = os.path.abspath(os.path.dirname(__file__))
 PATH_PARENT_PARENT = os.path.abspath(os.path.join(PATH_PARENT, os.pardir))
-PATH_LOGS = os.path.join(PATH_PARENT_PARENT, 'logs', 'script.log')
 
+PATH_LOGS_DIR = os.path.join(PATH_PARENT_PARENT, 'logs')
+PATH_LOGS_FILE = os.path.join(PATH_LOGS_DIR, 'script.log')
+
+create_log_dir(PATH_LOGS_DIR)
 
 logger = logging.getLogger('mylogger')
 logger.setLevel(logging.DEBUG)
@@ -46,7 +54,7 @@ logger.addHandler(ch)
 
 
 # Create RotatingFileHandler
-rfh = RotatingFileHandler(PATH_LOGS, maxBytes=100_000, backupCount=10)
+rfh = RotatingFileHandler(PATH_LOGS_FILE, maxBytes=100_000, backupCount=10)
 rfh.setLevel(logging.DEBUG)
 rfh.setFormatter(formatter)
 logger.addHandler(rfh)
