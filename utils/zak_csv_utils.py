@@ -5,10 +5,12 @@ import time
 from .zak_api_utils import *
 from .logger import logger, get_datetime_now
 
+# Edit below
 City = 'Edmonton'
 Area = 'AB'
 CSV_COLUMN_ADDRESS = 'Add'
 CSV_COLUMN_POSTALCODE = 'PC'
+# Edit above
 
 PATH_THIS_FILE = os.path.realpath(__file__)
 PATH_PARENT = os.path.abspath(os.path.dirname(__file__))
