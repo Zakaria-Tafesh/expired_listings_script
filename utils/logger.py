@@ -1,5 +1,6 @@
 import datetime
 import logging as logging
+import traceback
 from logging.handlers import TimedRotatingFileHandler, RotatingFileHandler
 import os
 import time
@@ -7,7 +8,13 @@ import time
 
 def create_log_dir(log_dir):
     print('Creating log directory: %s' % log_dir)
-    os.makedirs(log_dir)
+    try:
+        os.makedirs(log_dir)
+        print('Directory created successfully: %s' % log_dir)
+    except FileExistsError:
+        print(f'{log_dir} is already exists')
+    except:
+        traceback.print_exc()
 
 
 def get_datetime_now():
