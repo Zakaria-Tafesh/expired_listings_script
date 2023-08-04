@@ -8,8 +8,9 @@ from .logger import logger, get_datetime_now
 # Edit below
 City = 'Edmonton'
 Area = 'AB'
-CSV_COLUMN_ADDRESS = 'Add'
-CSV_COLUMN_POSTALCODE = 'PC'
+
+CSV_COLUMN_ADDRESS = 'Address'
+CSV_COLUMN_POSTALCODE = 'Postal Code'
 # Edit above
 
 PATH_THIS_FILE = os.path.realpath(__file__)
@@ -44,7 +45,7 @@ class CSVReader:
         logger.info(f'Reading CSV: {self.csv_path}')
         self.dataReader = csv.reader(open(self.csv_path), delimiter=',', quotechar='"')
         self.header = next(self.dataReader, None)
-        self.header = list(map(lambda item: str(item).replace(' ', '').replace('__', ''), self.header))
+        self.header = list(map(lambda item: str(item).strip(), self.header))
         logger.info(f'Header : {self.header}')
         logger.info(f'Done Reading CSV in {round((time.time() - start), 2)}')
 
@@ -81,8 +82,10 @@ class UpdateCSV(CSVReader):
         self.output_header = []
 
     def update_objects(self):
+        print('update_objects')
         for i, obj in enumerate(self.all_objects):
             time.sleep(2)
+            print(obj)
             logger.info('#'*50 + f'{i + 1}/{len(self.all_objects)}')
             address = obj.get(CSV_COLUMN_ADDRESS)
             if not address:
@@ -114,7 +117,6 @@ class UpdateCSV(CSVReader):
         return self.output_header
 
     def prepare_output_name(self):
-
         input_name = self.input_name
         first_part = input_name.split('.')[0]  # remove .csv
         second_part = self.add_to_output if self.add_to_output else ''
@@ -122,7 +124,6 @@ class UpdateCSV(CSVReader):
         last_part = '.csv'
         output_name = f'{first_part}_{second_part}_{third_part}{last_part}'
         output_path = os.path.join(PATH_OUTPUT, output_name)
-
         return output_path
 
     @staticmethod
@@ -134,6 +135,9 @@ class UpdateCSV(CSVReader):
         first_obj = copy.deepcopy(obj)
         first_obj['offer_price'] = addresses_dict['address1']['offer_price']
         first_obj['offer_price_90'] = addresses_dict['address1']['offer_price_90']
+
+        print(first_obj, type(first_obj))
+
         the_3_objs.append(first_obj)
         del addresses_dict['address1']
         for key, val in addresses_dict.items():
@@ -141,6 +145,7 @@ class UpdateCSV(CSVReader):
             new_obj[CSV_COLUMN_ADDRESS] = val['address']
             new_obj['offer_price'] = val['offer_price']
             new_obj['offer_price_90'] = val['offer_price_90']
+
             new_obj[CSV_COLUMN_POSTALCODE] = first_obj[CSV_COLUMN_POSTALCODE]
 
             the_3_objs.append(new_obj)
