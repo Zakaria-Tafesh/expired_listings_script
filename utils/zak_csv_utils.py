@@ -6,11 +6,12 @@ from .zak_api_utils import *
 from .logger import logger, get_datetime_now
 
 # Edit below
-City = 'Edmonton'
+city_default = 'Edmonton'
 Area = 'AB'
 
-CSV_COLUMN_ADDRESS = 'Address'
-CSV_COLUMN_POSTALCODE = 'Postal Code'
+CSV_COLUMN_ADDRESS_LIST = ['Address', 'Add']
+CSV_COLUMN_POSTALCODE_LIST = ['Postal Code', 'PC']
+CSV_COLUMN_CITY_LIST = ['Area/City', 'City']
 # Edit above
 
 PATH_THIS_FILE = os.path.realpath(__file__)
@@ -34,11 +35,37 @@ class CSVReader:
         self.all_objects = []
         self.dataReader = None
         self.header = None
+        self.CSV_COLUMN_ADDRESS = None
+        self.CSV_COLUMN_POSTALCODE = None
+        self.CSV_COLUMN_CITY = None
 
     def read_and_convert(self):
         self.read_csv()
+        self.get_columns_names()
         self.csv_to_objects()
         return self.all_objects
+
+    def get_columns_names(self):
+        def check_column_in_header(col_list):
+            for col in col_list:
+                if col in self.header:
+                    print(f'Found column {col}')
+                    return col
+
+            else:
+                print(col_list, ' not found in headers')
+                print('header', self.header)
+                return
+
+        self.CSV_COLUMN_ADDRESS = check_column_in_header(CSV_COLUMN_ADDRESS_LIST)
+        self.CSV_COLUMN_POSTALCODE = check_column_in_header(CSV_COLUMN_POSTALCODE_LIST)
+        self.CSV_COLUMN_CITY = check_column_in_header(CSV_COLUMN_CITY_LIST)
+
+        if self.CSV_COLUMN_ADDRESS and self.CSV_COLUMN_POSTALCODE:
+            return True
+        else:
+            print('Can NOT Continue, missing important columns (Address / Postal_Code)')
+            return True
 
     def read_csv(self):
         start = time.time()
@@ -87,10 +114,17 @@ class UpdateCSV(CSVReader):
             time.sleep(2)
             print(obj)
             logger.info('#'*50 + f'{i + 1}/{len(self.all_objects)}')
-            address = obj.get(CSV_COLUMN_ADDRESS)
+            address = obj.get(self.CSV_COLUMN_ADDRESS)
+            if self.CSV_COLUMN_CITY:
+                city = obj.get(self.CSV_COLUMN_CITY)
+                if not city:
+                    city = city_default
+            else:
+                city = city_default
+
             if not address:
                 continue
-            addresses_dict = AddressesDetails.get_3_addresses_with_prices(address)
+            addresses_dict = AddressesDetails.get_3_addresses_with_prices(address, city)
             logger.info(f'addresses_dict : {addresses_dict}')
 
             new_3_objs = self.get_3_objects(obj, addresses_dict)
@@ -126,8 +160,8 @@ class UpdateCSV(CSVReader):
         output_path = os.path.join(PATH_OUTPUT, output_name)
         return output_path
 
-    @staticmethod
-    def get_3_objects(obj: dict, addresses_dict: dict) -> list:
+    # @staticmethod
+    def get_3_objects(self, obj: dict, addresses_dict: dict) -> list:
         old_keys = obj.keys()
         the_3_objs = []
         addresses_dict = copy.deepcopy(addresses_dict)
@@ -142,11 +176,11 @@ class UpdateCSV(CSVReader):
         del addresses_dict['address1']
         for key, val in addresses_dict.items():
             new_obj = dict.fromkeys(old_keys, '')
-            new_obj[CSV_COLUMN_ADDRESS] = val['address']
+            new_obj[self.CSV_COLUMN_ADDRESS] = val['address']
             new_obj['offer_price'] = val['offer_price']
             new_obj['offer_price_90'] = val['offer_price_90']
 
-            new_obj[CSV_COLUMN_POSTALCODE] = first_obj[CSV_COLUMN_POSTALCODE]
+            new_obj[self.CSV_COLUMN_POSTALCODE] = first_obj[self.CSV_COLUMN_POSTALCODE]
 
             the_3_objs.append(new_obj)
 
@@ -183,18 +217,18 @@ class AddressesDetails:
     }
 
     @classmethod
-    def get_3_addresses_with_prices(cls, address):
+    def get_3_addresses_with_prices(cls, address, city):
         logger.info(f'Start working on Addresses: {address}')
         cls.address1 = address
-        cls.address1_for_search = address + f', {City}, {Area}'
+        cls.address1_for_search = address + f', {city}, {Area}'
         logger.info(f'address1: {cls.address1}')
         logger.info(f'address1_for_search: {cls.address1_for_search}')
-        cls.get_nearest_2_addresses()
+        cls.get_nearest_2_addresses(city)
         cls.get_estimates()
         return cls.addresses_prices
 
     @classmethod
-    def get_nearest_2_addresses(cls):
+    def get_nearest_2_addresses(cls, city):
         logger.info(f'address1_for_search: {cls.address1_for_search}')
 
         first_part = int(cls.address1.split()[0])
@@ -207,8 +241,8 @@ class AddressesDetails:
             third = first_part - 1
         cls.address2 = f'{second} {other_parts}'
         cls.address3 = f'{third} {other_parts}'
-        cls.address2_for_search = cls.address2 + f', {City}, {Area}'
-        cls.address3_for_search = cls.address3 + f', {City}, {Area}'
+        cls.address2_for_search = cls.address2 + f', {city}, {Area}'
+        cls.address3_for_search = cls.address3 + f', {city}, {Area}'
 
         cls.addresses_prices['address1']['address'] = cls.address1
         cls.addresses_prices['address1']['address_for_search'] = cls.address1_for_search
