@@ -181,6 +181,7 @@ class UpdateCSV(CSVReader):
             new_obj['offer_price_90'] = val['offer_price_90']
 
             new_obj[self.CSV_COLUMN_POSTALCODE] = first_obj[self.CSV_COLUMN_POSTALCODE]
+            new_obj[self.CSV_COLUMN_CITY] = first_obj[self.CSV_COLUMN_CITY]
 
             the_3_objs.append(new_obj)
 
@@ -230,15 +231,30 @@ class AddressesDetails:
     @classmethod
     def get_nearest_2_addresses(cls, city):
         logger.info(f'address1_for_search: {cls.address1_for_search}')
-
-        first_part = int(cls.address1.split()[0])
         other_parts = ' '.join(cls.address1.split()[1:])
-        if first_part == 1:
-            second = 2
-            third = 3
+
+        first_part = cls.address1.split()[0]
+        if first_part.isdecimal():
+            first_part = int(first_part)
+
+            if first_part == 1:
+                second = 2
+                third = 3
+            else:
+                second = first_part + 1
+                third = first_part - 1
         else:
-            second = first_part + 1
-            third = first_part - 1
+            first_section = int(first_part.split('-')[0])
+            second_section = (first_part.split('-')[1])
+            if first_section == 1:
+                first_section2 = 2
+                first_section3 = 3
+            else:
+                first_section2 = first_section + 1
+                first_section3 = first_section - 1
+            second = f'{first_section2}-{second_section}'
+            third = f'{first_section3}-{second_section}'
+
         cls.address2 = f'{second} {other_parts}'
         cls.address3 = f'{third} {other_parts}'
         cls.address2_for_search = cls.address2 + f', {city}, {Area}'
