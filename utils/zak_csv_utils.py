@@ -230,33 +230,78 @@ class AddressesDetails:
 
     @classmethod
     def get_nearest_2_addresses(cls, city):
+        def plus_subtract(one_int: str) -> (str,):
+            """
+            :param one_int:
+            :return: two integers ( after and before one integer unless one integer is Zero)
+            """
+
+            if isinstance(one_int, str):
+                one_int = int(one_int)
+
+            if one_int == 1:
+                second_int = 2
+                third_int = 3
+            else:
+                second_int = one_int + 1
+                third_int = one_int - 1
+
+            return str(second_int), str(third_int)
+
+        def split_parts_from_home_num(home_num: str) -> [str]:
+            home_num = str(home_num)
+            parts = []
+            first_int = ''
+            second_part = ''
+            if home_num.isdecimal():
+                parts.append(home_num)
+            else:
+                for i, c in enumerate(home_num):
+                    if c.isdecimal():
+                        first_int += c
+                    else:
+                        second_part = home_num[i:]
+                        break
+                parts.append(first_int)
+                if second_part:
+                    parts.append(second_part)
+            return parts
+
         logger.info(f'address1_for_search: {cls.address1_for_search}')
         other_parts = ' '.join(cls.address1.split()[1:])
 
-        first_part = cls.address1.split()[0]
-        if first_part.isdecimal():
-            first_part = int(first_part)
+        home_part = cls.address1.split()[0]
+        home_part_list = split_parts_from_home_num(home_part)
+        second_home, third_home = plus_subtract(home_part_list[0])
 
-            if first_part == 1:
-                second = 2
-                third = 3
-            else:
-                second = first_part + 1
-                third = first_part - 1
-        else:
-            first_section = int(first_part.split('-')[0])
-            second_section = (first_part.split('-')[1])
-            if first_section == 1:
-                first_section2 = 2
-                first_section3 = 3
-            else:
-                first_section2 = first_section + 1
-                first_section3 = first_section - 1
-            second = f'{first_section2}-{second_section}'
-            third = f'{first_section3}-{second_section}'
+        if len(home_part_list) > 1:
+            second_home += ''.join(home_part_list[1:])
+            third_home += ''.join(home_part_list[1:])
 
-        cls.address2 = f'{second} {other_parts}'
-        cls.address3 = f'{third} {other_parts}'
+        # if first_part.isdecimal():
+        #     first_part = int(first_part)
+        #
+        #     if first_part == 1:
+        #         second = 2
+        #         third = 3
+        #     else:
+        #         second = first_part + 1
+        #         third = first_part - 1
+        # else:
+        #     first_section = int(first_part.split('-')[0])
+        #     second_section = (first_part.split('-')[1])
+        #     if first_section == 1:
+        #         first_section2 = 2
+        #         first_section3 = 3
+        #     else:
+        #         first_section2 = first_section + 1
+        #         first_section3 = first_section - 1
+        #
+        #     second = f'{first_section2}-{second_section}'
+        #     third = f'{first_section3}-{second_section}'
+
+        cls.address2 = f'{second_home} {other_parts}'
+        cls.address3 = f'{third_home} {other_parts}'
         cls.address2_for_search = cls.address2 + f', {city}, {Area}'
         cls.address3_for_search = cls.address3 + f', {city}, {Area}'
 
