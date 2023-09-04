@@ -107,6 +107,7 @@ class UpdateCSV(CSVReader):
         self.add_to_output = add_to_output
         self.add_datetime_to_output = add_datetime_to_output
         self.output_header = []
+        self.errors = []
 
     def update_objects(self):
         print('update_objects')
@@ -124,8 +125,13 @@ class UpdateCSV(CSVReader):
 
             if not address:
                 continue
+
             addresses_dict = AddressesDetails.get_3_addresses_with_prices(address, city)
+
             logger.info(f'addresses_dict : {addresses_dict}')
+            if not addresses_dict:
+                logger.info(f'ERROR on addresses : {address}')
+                continue
 
             new_3_objs = self.get_3_objects(obj, addresses_dict)
             logger.info(f'addresses_dict :: {addresses_dict}')
@@ -205,17 +211,7 @@ class AddressesDetails:
     address2_for_search = ''
     address3_for_search = ''
 
-    addresses_prices = {
-        'address1': {'address': '',
-                     'address_for_search': ''
-                     },
-        'address2': {'address': '',
-                     'address_for_search': ''
-                     },
-        'address3': {'address': '',
-                     'address_for_search': ''
-                     }
-    }
+    addresses_prices = {}
 
     @classmethod
     def get_3_addresses_with_prices(cls, address, city):
@@ -225,6 +221,7 @@ class AddressesDetails:
         logger.info(f'address1: {cls.address1}')
         logger.info(f'address1_for_search: {cls.address1_for_search}')
         cls.get_nearest_2_addresses(city)
+
         cls.get_estimates()
         return cls.addresses_prices
 
@@ -237,7 +234,10 @@ class AddressesDetails:
             """
 
             if isinstance(one_int, str):
-                one_int = int(one_int)
+                if one_int.isdecimal():
+                    one_int = int(one_int)
+                else:
+                    return None, None
 
             if one_int == 1:
                 second_int = 2
@@ -273,44 +273,31 @@ class AddressesDetails:
         home_part = cls.address1.split()[0]
         home_part_list = split_parts_from_home_num(home_part)
         second_home, third_home = plus_subtract(home_part_list[0])
+        if not second_home and not third_home:
+            return
 
         if len(home_part_list) > 1:
             second_home += ''.join(home_part_list[1:])
             third_home += ''.join(home_part_list[1:])
-
-        # if first_part.isdecimal():
-        #     first_part = int(first_part)
-        #
-        #     if first_part == 1:
-        #         second = 2
-        #         third = 3
-        #     else:
-        #         second = first_part + 1
-        #         third = first_part - 1
-        # else:
-        #     first_section = int(first_part.split('-')[0])
-        #     second_section = (first_part.split('-')[1])
-        #     if first_section == 1:
-        #         first_section2 = 2
-        #         first_section3 = 3
-        #     else:
-        #         first_section2 = first_section + 1
-        #         first_section3 = first_section - 1
-        #
-        #     second = f'{first_section2}-{second_section}'
-        #     third = f'{first_section3}-{second_section}'
 
         cls.address2 = f'{second_home} {other_parts}'
         cls.address3 = f'{third_home} {other_parts}'
         cls.address2_for_search = cls.address2 + f', {city}, {Area}'
         cls.address3_for_search = cls.address3 + f', {city}, {Area}'
 
-        cls.addresses_prices['address1']['address'] = cls.address1
-        cls.addresses_prices['address1']['address_for_search'] = cls.address1_for_search
-        cls.addresses_prices['address2']['address'] = cls.address2
-        cls.addresses_prices['address2']['address_for_search'] = cls.address2_for_search
-        cls.addresses_prices['address3']['address'] = cls.address3
-        cls.addresses_prices['address3']['address_for_search'] = cls.address3_for_search
+        cls.addresses_prices = {
+            'address1': {'address': cls.address1,
+                         'address_for_search': cls.address1_for_search
+                         },
+            'address2': {'address': cls.address2,
+                         'address_for_search': cls.address2_for_search
+                         },
+            'address3': {'address': cls.address3,
+                         'address_for_search': cls.address3_for_search
+                         }
+        }
+
+        return cls.addresses_prices
 
     @classmethod
     def get_estimates(cls):
