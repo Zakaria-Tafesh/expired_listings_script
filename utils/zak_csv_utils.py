@@ -100,12 +100,18 @@ class CSVReader:
 
 class UpdateCSV(CSVReader):
 
-    def __init__(self, csv_file, add_to_output, add_datetime_to_output):
+    def __init__(self, csv_file, add_to_output, add_datetime_to_output, single_mode=False):
         super().__init__(csv_file)
+        self.header_written = False
         self.new_objects = []
         self.input_name = csv_file
         self.add_to_output = add_to_output
         self.add_datetime_to_output = add_datetime_to_output
+        self.single_mode = single_mode
+        if single_mode:
+            self.add_datetime_to_output = False
+        self.output_name = self.prepare_output_name()
+
         self.output_header = []
         self.errors = []
 
@@ -114,7 +120,7 @@ class UpdateCSV(CSVReader):
         for i, obj in enumerate(self.all_objects):
             time.sleep(2)
             print(obj)
-            logger.info('#'*50 + f'{i + 1}/{len(self.all_objects)}')
+            logger.info('#' * 50 + f'{i + 1}/{len(self.all_objects)}')
             address = obj.get(self.CSV_COLUMN_ADDRESS)
             if self.CSV_COLUMN_CITY:
                 city = obj.get(self.CSV_COLUMN_CITY)
@@ -136,12 +142,30 @@ class UpdateCSV(CSVReader):
             new_3_objs = self.get_3_objects(obj, addresses_dict)
             logger.info(f'addresses_dict :: {addresses_dict}')
 
-            self.new_objects.extend(new_3_objs)
+            # Write new_3_objs ( Append )
+            if self.single_mode:
+                self.new_objects = new_3_objs
+                self.get_output_header()
+                self.append_1_object()
+            else:
+                self.new_objects.extend(new_3_objs)
+                self.get_output_header()
 
-            logger.info('#'*50)
+            logger.info('#' * 50)
 
-        logger.info(self.new_objects)
-        self.get_output_header()
+        # logger.info(self.new_objects)
+        # self.get_output_header()
+
+    def append_1_object(self):
+        logger.info(f'object to append: \n{self.new_objects}')
+        logger.info(f'Writing 1 object to CSV... : {self.output_name}')
+        with open(self.output_name, 'a+', encoding='UTF8', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=self.output_header)
+            if not self.header_written:
+                writer.writeheader()
+                self.header_written = True
+            writer.writerows(self.new_objects)
+        logger.info('CSV Updated Successfully.')
 
     def write_objects(self):
         output_name = self.prepare_output_name()
@@ -153,7 +177,8 @@ class UpdateCSV(CSVReader):
         logger.info('CSV Wrote Successfully.')
 
     def get_output_header(self):
-        self.output_header = max(list(map(lambda x: (len(x), x), self.new_objects)), key=lambda i: i[0])[1].keys()
+        if not self.output_header:
+            self.output_header = max(list(map(lambda x: (len(x), x), self.new_objects)), key=lambda i: i[0])[1].keys()
         return self.output_header
 
     def prepare_output_name(self):
@@ -215,6 +240,7 @@ class AddressesDetails:
 
     @classmethod
     def get_3_addresses_with_prices(cls, address, city):
+        cls.addresses_prices = {}
         logger.info(f'Start working on Addresses: {address}')
         cls.address1 = address
         cls.address1_for_search = address + f', {city}, {Area}'
@@ -303,7 +329,7 @@ class AddressesDetails:
     def get_estimates(cls):
         for address_num, address_dict in cls.addresses_prices.items():
             address = address_dict['address_for_search']
-            logger.info('#'*20)
+            logger.info('#' * 20)
             logger.info(f'Getting estimate for {address}')
             resp = GetEstimateAPI.get_estimate(address)
             logger.info(f'resp:: {resp}')
@@ -314,11 +340,10 @@ class AddressesDetails:
             else:
                 address_dict['offer_price'] = ''
                 address_dict['offer_price_90'] = ''
-            logger.info('#'*20)
+            logger.info('#' * 20)
 
         logger.info(cls.addresses_prices)
         return cls.addresses_prices
-
 
 # if __name__ == '__main__':
 #     Target_CSV = """Adam's_Custom_Spreadsheet.csv"""
@@ -330,4 +355,3 @@ class AddressesDetails:
 #     csv_obj.update_objects()
 #     csv_obj.write_objects()
 #
-
